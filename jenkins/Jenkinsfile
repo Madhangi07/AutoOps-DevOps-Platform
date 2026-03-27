@@ -26,7 +26,7 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Running basic test...'
-                sh 'docker run --rm autoops-dashboard:latest node -e "console.log(\"App OK\")"'
+                sh 'docker run --rm autoops-dashboard:latest node -e "console.log(\'App OK\')"'
             }
         }
 
