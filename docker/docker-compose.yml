@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  autoops-dashboard:
+    build: .
+    container_name: autoops-dashboard
+    ports:
+      - "80:3001"
+    restart: always
