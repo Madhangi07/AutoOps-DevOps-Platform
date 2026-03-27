@@ -33,13 +33,15 @@ pipeline {
             steps {
                 echo 'Deploying app to App Server...'
                 sh '''
+                    docker save autoops-dashboard:latest | \
                     ssh -i /var/lib/jenkins/.ssh/autoops-key.pem \
                     -o StrictHostKeyChecking=no \
                     ec2-user@3.86.102.81 \
-                    "docker stop autoops-dashboard || true && \
-                     docker rm autoops-dashboard || true && \
-                     docker run -d --name autoops-dashboard \
-                     --restart always -p 80:3001 autoops-dashboard:latest"
+                    "docker load && \
+                    docker stop autoops-dashboard || true && \
+                    docker rm autoops-dashboard || true && \
+                    docker run -d --name autoops-dashboard \
+                    --restart always -p 80:3001 autoops-dashboard:latest"
                 '''
             }
         }
