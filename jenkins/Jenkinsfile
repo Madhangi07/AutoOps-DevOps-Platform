@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         APP_SERVER = '3.86.102.81'
-        PEM_PATH   = '/home/ec2-user/.ssh/autoops-key.pem'
     }
 
     stages {
@@ -32,11 +31,15 @@ pipeline {
 
         stage('Deploy to App Server') {
             steps {
-                echo 'Deploying to App Server via Ansible...'
+                echo 'Deploying app to App Server...'
                 sh '''
-                    ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
-                    --tags deploy \
-                    -e "target=app"
+                    ssh -i /var/lib/jenkins/.ssh/autoops-key.pem \
+                    -o StrictHostKeyChecking=no \
+                    ec2-user@3.86.102.81 \
+                    "docker stop autoops-dashboard || true && \
+                     docker rm autoops-dashboard || true && \
+                     docker run -d --name autoops-dashboard \
+                     --restart always -p 80:3001 autoops-dashboard:latest"
                 '''
             }
         }
@@ -44,7 +47,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 echo 'Checking app is live...'
-                sh 'curl -f http://${APP_SERVER}:80 || echo "Health check failed"'
+                sh 'curl -f http://3.86.102.81:80 || echo "Health check failed"'
             }
         }
 
@@ -52,7 +55,7 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline completed successfully! AutoOps is live.'
+            echo 'Pipeline completed! AutoOps is live.'
         }
         failure {
             echo 'Pipeline failed. Check logs above.'
