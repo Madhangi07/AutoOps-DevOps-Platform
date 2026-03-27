@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets:
+          - '3.86.102.81:9100'
+          - '3.95.154.196:9100'
+          - '54.234.218.120:9100'
+        labels:
+          project: 'AutoOps'
