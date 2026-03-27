@@ -1,0 +1,79 @@
+---
+- name: Configure all servers
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update system packages
+      yum:
+        name: "*"
+        state: latest
+
+    - name: Install Docker
+      yum:
+        name: docker
+        state: present
+
+    - name: Start and enable Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Install node_exporter for Prometheus monitoring
+      shell: |
+        wget -q https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
+        tar xzf node_exporter-1.7.0.linux-amd64.tar.gz
+        cp node_exporter-1.7.0.linux-amd64/node_exporter /usr/local/bin/
+        rm -rf node_exporter-1.7.0.linux-amd64*
+      args:
+        creates: /usr/local/bin/node_exporter
+
+    - name: Create node_exporter service
+      copy:
+        dest: /etc/systemd/system/node_exporter.service
+        content: |
+          [Unit]
+          Description=Node Exporter
+          After=network.target
+
+          [Service]
+          User=ec2-user
+          ExecStart=/usr/local/bin/node_exporter
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Start node_exporter
+      systemd:
+        name: node_exporter
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+- name: Setup monitoring server
+  hosts: monitoring
+  become: yes
+  tasks:
+    - name: Run Prometheus container
+      shell: |
+        docker run -d \
+          --name prometheus \
+          --restart always \
+          -p 9090:9090 \
+          prom/prometheus
+      ignore_errors: yes
+
+    - name: Run Grafana container
+      shell: |
+        docker run -d \
+          --name grafana \
+          --restart always \
+          -p 3000:3000 \
+          grafana/grafana
+      ignore_errors: yes
